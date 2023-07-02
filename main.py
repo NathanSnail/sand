@@ -112,7 +112,7 @@ def world_init():
                 ty = 1
             elif random.random() < 0.1:
                 ty = 3
-            elif random.random() < 0.1:
+            elif y * 0.1 < random.random():
                 ty = 5
             world[x,y] = ty
 
