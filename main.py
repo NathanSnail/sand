@@ -7,6 +7,7 @@ size = (64,32)
 clamp = np.ones(size,dtype="uint8")
 world = np.zeros(size,dtype="uint8")
 
+# i can't really move anything
 # density sorted
 # 0: air
 # 1-2: water
@@ -34,19 +35,10 @@ def render(scr):
         scr.addstr("\n")
     do_fps(scr)
 
-magic_cols = {254:(1000,1000,1000)}
-magic_pairs = {255:(254,254)}
-
 def colour_init():
     for k,col in enumerate(col_map):
         curses.init_color(k+1,col[0],col[1],col[2])
         curses.init_pair(k+1,k+1,k+1)
-    for key in magic_cols.keys():
-        value = magic_cols[key]
-        curses.init_color(key,value[0],value[1],value[2])
-    for key in magic_pairs.keys():
-        value = magic_pairs[key]
-        curses.init_pair(key, value[0], value[1])
 
 frame_times = [1 for _ in range(15)]
 current_frame = 0
