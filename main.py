@@ -15,9 +15,10 @@ world = np.zeros(size,dtype="uint8")
 # ===== Render ======
 
 col_map = [
-        (curses.COLOR_BLACK,curses.COLOR_BLACK),
-        (curses.COLOR_BLUE,curses.COLOR_BLUE),
-        (curses.COLOR_YELLOW,curses.COLOR_YELLOW)
+        (600, 600, 1000),
+        (0, 200, 1000),
+        (1000, 1000, 100),
+        (20, 40, 60),
 ]
 
 def render(scr):
@@ -33,8 +34,9 @@ def render(scr):
         scr.addstr("\n")
 
 def colour_init():
-    for k,pair in enumerate(col_map):
-        curses.init_pair(k+1,pair[0],pair[1])
+    for k,col in enumerate(col_map):
+        curses.init_color(k+1,col[0],col[1],col[2])
+        curses.init_pair(k+1,k+1,k+1)
 
 # ===== Sim =====
 
@@ -89,7 +91,10 @@ def tick_sand(x,y):
             world[nx,y] = 4
             world[x,y] = below_side
 
-func_map = [tick_water,tick_sand]
+def tick_rock(x,y):
+    pass # rocks dont do much
+
+func_map = [tick_water, tick_sand, tick_rock]
 
 def clean():
     global world
@@ -107,6 +112,8 @@ def world_init():
                 ty = 1
             elif random.random() < 0.1:
                 ty = 3
+            elif random.random() < 0.1:
+                ty = 5
             world[x,y] = ty
 
 # ===== Control =====
