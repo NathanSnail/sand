@@ -32,11 +32,34 @@ def render(scr):
             #else:
             scr.addstr("██",curses.color_pair(1+c))
         scr.addstr("\n")
+    do_fps(scr)
+
+magic_cols = {254:(1000,1000,1000)}
+magic_pairs = {255:(254,254)}
 
 def colour_init():
     for k,col in enumerate(col_map):
         curses.init_color(k+1,col[0],col[1],col[2])
         curses.init_pair(k+1,k+1,k+1)
+    for key in magic_cols.keys():
+        value = magic_cols[key]
+        curses.init_color(key,value[0],value[1],value[2])
+    for key in magic_pairs.keys():
+        value = magic_pairs[key]
+        curses.init_pair(key, value[0], value[1])
+
+frame_times = [1 for _ in range(15)]
+current_frame = 0
+last_time = time.time()
+def do_fps(scr):
+    global last_time, current_frame, frame_times
+    current_time = time.time()
+    frame_times[current_frame] = current_time - last_time
+    last_time = current_time
+    current_frame += 1
+    current_frame %= 15
+    fps = 15 / sum(frame_times)
+    scr.addstr(size[1],0,f"FPS: {fps:.0f}",255)
 
 # ===== Sim =====
 
