@@ -9,6 +9,7 @@ world = np.zeros(size,dtype="uint8")
 
 # density sorted
 # air
+# smoke
 # fire
 # spark
 # water
@@ -19,6 +20,7 @@ world = np.zeros(size,dtype="uint8")
 
 col_map = [
         (600, 600, 1000),
+        (300, 300, 300),
         (1000, 200, 0),
         (900, 400, 100),
         (0, 200, 1000),
@@ -67,7 +69,7 @@ def do_fps(scr):
 # %2 => ticked
 
 # hashing is prob slower
-mat_list = [("fire",0),("spark",1),("water",1),("sand",2),("wood",3),("rock",3)]
+mat_list = [("smoke",0),("fire",0),("spark",1),("water",1),("sand",2),("wood",3),("rock",3)]
 
 def get_mat(name):
     if name == "air":
@@ -168,10 +170,13 @@ def tick_rock(x,y,mid):
 func_map = [tick_gas, tick_liquid, tick_sand, tick_solid]
 
 reactions = {
-        "fire+air":("air+air",0.15),
+        "fire+air":("smoke+air",0.15),
         "fire+wood":("spark+fire",0.95),
         "spark+wood":("fire+fire",0.8),
-        "spark+air":("air+fire",0.3)
+        "spark+air":("smoke+fire",0.3),
+        "smoke+smoke":("air+smoke",0.02),
+        "smoke+air":("air+air",0.05),
+        "fire+smoke":("smoke+smoke",0.4),
 }
 
 def do_reaction(x,y,mid):
@@ -230,7 +235,7 @@ def main(scr):
     while True:
         #scr.clear()
         scr.erase() # magically fixes all the flickering
-        #time.sleep(0.5)
+        #time.sleep(0.1)
         scr.addstr(str())
         tick()
         clean()
