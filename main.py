@@ -3,22 +3,25 @@ import time
 import curses
 import random
 
-size = (64,32)
+size = (32,32)
 clamp = np.ones(size,dtype="uint8")
 world = np.zeros(size,dtype="uint8")
 
-# i can't really move anything
 # density sorted
-# 0: air
-# 1-2: water
-# 3-4: sand
-# 5-6: rock
+# air
+# fire
+# water
+# sand
+# wood
+# rock
 # ===== Render ======
 
 col_map = [
         (600, 600, 1000),
+        (1000, 200, 0),
         (0, 200, 1000),
         (1000, 1000, 100),
+        (400,400,200),
         (20, 40, 60),
 ]
 
@@ -55,6 +58,12 @@ def do_fps(scr):
 
 # ===== Sim =====
 
+# hashing is prob slower
+mat_list = ["fire","water","sand","wood","rock"]
+
+def get_mat(name):
+    return mat_list.index(name)
+
 def tick():
     global world
     for y in range(size[1]):
@@ -62,37 +71,55 @@ def tick():
             material = world[x,y]
             if material % 2 == 0:
                 continue
-            func_map[world[x,y]//2](x,y)
+            mid = world[x,y]//2
+            func_map[mid](x,y,mid*2+1)
 
-def tick_water(x,y): 
+def tick_fire(x,y,mid):
+    wood = False
+    for nx in range(x-1, x+2):
+        for ny in range(y-1, y+2):
+            if (world[nx,ny] - 1) // 2 == get_mat("wood"):
+                wood = True
+    if not wood:
+        if random.random() < 0.15: # 15% of burning out
+            world[x,y] = 0
+            return
+        swap = world[x,y-1]
+        if swap < mid:
+            world[x,y-1] = mid + 1
+            world[x,y] = swap
+            
+def tick_water(x,y,mid): 
     # unticked pixel
     if y == 0:
         # bottom of world
         return
-    if world[x,y-1] == 0:
+    if world[x,y-1] < mid:
         # empty space
-        world[x,y-1] = 2
-        world[x,y] = 0
+        swap = world[x,y-1]
+        world[x,y-1] = mid + 1
+        world[x,y] = swap
     else:
         # filled space
         direction = random.choice([-1,1])
         nx = x + direction
         if nx < 0 or nx >= size[0]:
             return
-        if world[nx,y] == 0:
+        if world[nx,y] < mid:
             # empty space next to
-            world[nx,y] = 2
-            world[x,y] = 0
+            swap = world[nx,y]
+            world[nx,y] = mid + 1
+            world[x,y] = swap
 
-def tick_sand(x,y):
+def tick_sand(x,y,mid):
     if y == 0:
         # bottom of world
         return
     below = world[x,y-1]
-    if below < 3 and random.random() < 0.8: # chance to move with water
+    if below < mid:
         pass
         # empty space
-        world[x,y-1] = 4
+        world[x,y-1] = mid + 1
         world[x,y] = below
     else:
         # filled space
@@ -101,15 +128,18 @@ def tick_sand(x,y):
         if nx < 0 or nx >= size[0]:
             return
         below_side = world[nx,y-1]
-        if below_side < 3:
+        if below_side < mid:
             # empty space next to
-            world[nx,y] = 4
+            world[nx,y] = mid + 1
             world[x,y] = below_side
 
-def tick_rock(x,y):
+def tick_wood(x,y,mid):
+    pass # wood also is boring
+
+def tick_rock(x,y,mid):
     pass # rocks dont do much
 
-func_map = [tick_water, tick_sand, tick_rock]
+func_map = [tick_fire, tick_water, tick_sand, tick_wood, tick_rock]
 
 def clean():
     global world
