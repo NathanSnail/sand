@@ -9,7 +9,9 @@ world = np.zeros(size,dtype="uint8")
 
 # density sorted
 # air
+# smoke
 # fire
+# spark
 # water
 # sand
 # wood
@@ -18,10 +20,13 @@ world = np.zeros(size,dtype="uint8")
 
 col_map = [
         (600, 600, 1000),
+        (300, 300, 300),
         (1000, 200, 0),
+        (900, 400, 100),
         (0, 200, 1000),
         (1000, 1000, 100),
-        (400,400,200),
+        (1000, 1000, 1000),
+        (700,400,200),
         (20, 40, 60),
 ]
 
@@ -58,43 +63,66 @@ def do_fps(scr):
 
 # ===== Sim =====
 
+# gas
+# liquid
+# sand
+# solid
+# %2 => ticked
+
 # hashing is prob slower
-mat_list = ["fire","water","sand","wood","rock"]
+mat_list = [("smoke",0),("fire",0),("spark",1),("water",1),("sand",2),("glass",3),("wood",3),("rock",3)]
 
 def get_mat(name):
-    return mat_list.index(name)
+    if name == "air":
+        return 0
+    for k,v in enumerate(mat_list):
+        if v[0] == name:
+            return (k+1)*2
+
+def get_type(mid):
+    return mat_list[mid-1][1]
+
+def get_name(mid):
+    if mid == 0:
+        return "air"
+    return mat_list[mid-1][0]
 
 def tick():
     global world
     for y in range(size[1]):
         for x in range(size[0]):
             material = world[x,y]
-            if material % 2 == 0:
+            if material % 2 == 1 or material == 0:
                 continue
             mid = world[x,y]//2
-            func_map[mid](x,y,mid*2+1)
+            mid = do_reaction(x,y,mid)
+            func_map[get_type(mid)](x,y,mid*2)
 
-def tick_fire(x,y,mid):
-    wood = False
-    for nx in range(x-1, x+2):
-        for ny in range(y-1, y+2):
-            if (world[nx,ny] - 1) // 2 == get_mat("wood"):
-                wood = True
-    if not wood:
-        if random.random() < 0.15: # 15% of burning out
-            world[x,y] = 0
-            return
-        swap = world[x,y-1]
-        if swap < mid:
-            world[x,y-1] = mid + 1
-            world[x,y] = swap
-            
-def tick_water(x,y,mid): 
+def tick_gas(x,y,mid):
     # unticked pixel
-    if y == 0:
-        # bottom of world
+    if y == size[1]:
+        # top of world
         return
-    if world[x,y-1] < mid:
+    if y < size[1] - 1 and world[x,y+1] < mid:
+        # empty space
+        swap = world[x,y+1]
+        world[x,y+1] = mid + 1
+        world[x,y] = swap
+    else:
+        # filled space
+        direction = random.choice([-1,1])
+        nx = x + direction
+        if nx < 0 or nx >= size[0]:
+            return
+        if world[nx,y] < mid:
+            # empty space next to
+            swap = world[nx,y]
+            world[nx,y] = mid + 1
+            world[x,y] = swap
+ 
+def tick_liquid(x,y,mid): 
+    # unticked pixel
+    if world[x,y-1] < mid and y != 0:
         # empty space
         swap = world[x,y-1]
         world[x,y-1] = mid + 1
@@ -133,13 +161,57 @@ def tick_sand(x,y,mid):
             world[nx,y] = mid + 1
             world[x,y] = below_side
 
-def tick_wood(x,y,mid):
-    pass # wood also is boring
+def tick_solid(x,y,mid):
+    pass # solids don't do anything
 
 def tick_rock(x,y,mid):
     pass # rocks dont do much
 
-func_map = [tick_fire, tick_water, tick_sand, tick_wood, tick_rock]
+func_map = [tick_gas, tick_liquid, tick_sand, tick_solid]
+
+reactions = [
+        ("fire","air",0.02),
+        ("fire","smoke",0.1),
+        ("fire","spark",0.02),
+        ("fire+wood","spark+fire",0.95),
+        ("spark+wood","fire+fire",0.8),
+        ("spark","fire",0.3),
+        ("smoke","air",0.02),
+        ("fire+smoke","smoke+smoke",0.4),
+        ("fire+sand","fire+glass",0.05),
+        ("fire+air","air+fire",0.4),
+]
+
+def do_reaction(x,y,mid):
+    nx = x + random.choice([-1,0,1])
+    ny = y + random.choice([-1,0,1])
+    if x != nx or y != ny:
+        if nx >= 0 and nx < size[0] and ny >= 0 and ny < size[1]:
+            new = get_reaction(get_name(world[x,y]//2),get_name(world[nx,ny]//2))
+            world[x,y] = get_mat(new[0][0])
+            world[nx,ny] = get_mat(new[0][1])
+            return world[x,y]//2
+    return mid
+
+def get_reaction(a,b):
+    for reaction in reactions:
+        data = match_reaction(reaction,a,b)
+        if data[1]:
+            return data
+    return ((a,b),False)
+
+def match_reaction(reaction,a,b):
+    parts = reaction[0].split("+")
+    parts_other = reaction[1].split("+")
+    if len(parts) == 1:
+        if a == parts[0]:
+            if random.random() < reaction[2]:
+                return ((parts_other[0],b),True)
+    else:
+        if a == parts[0] and b == parts[1]:
+            if random.random() < reaction[2]:
+                return ((parts_other[0],parts_other[1]),True)
+    return ((a,b),False)
 
 def clean():
     global world
@@ -147,18 +219,20 @@ def clean():
         for x in range(size[0]):
             if world[x,y] == 0:
                 continue
-            world[x,y] = ((world[x,y] + 1 ) // 2) * 2 - 1
+            world[x,y] = ((world[x,y]) // 2) * 2
 
 def world_init():
     for y in range(size[1]):
         for x in range(size[0]):
-            ty = 0
+            ty = get_mat("air")
             if random.random() < 0.1:
-                ty = 1
+                ty = get_mat("fire")
             elif random.random() < 0.1:
-                ty = 3
+                ty = get_mat("sand")
             elif y * 0.1 < random.random():
-                ty = 5
+                ty = get_mat("water")
+            elif random.random() < y * 0.05:
+                ty = get_mat("wood")
             world[x,y] = ty
 
 # ===== Control =====
@@ -175,7 +249,7 @@ def main(scr):
     while True:
         #scr.clear()
         scr.erase() # magically fixes all the flickering
-        #time.sleep(0.5)
+        #time.sleep(0.1)
         scr.addstr(str())
         tick()
         clean()
