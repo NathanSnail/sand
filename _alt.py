@@ -25,8 +25,7 @@ col_map = [
         (900, 400, 100),
         (0, 200, 1000),
         (1000, 1000, 100),
-        (1000, 1000, 1000),
-        (700,400,200),
+        (400,400,200),
         (20, 40, 60),
 ]
 
@@ -70,14 +69,14 @@ def do_fps(scr):
 # %2 => ticked
 
 # hashing is prob slower
-mat_list = [("smoke",0),("fire",0),("spark",1),("water",1),("sand",2),("glass",3),("wood",3),("rock",3)]
+mat_list = [("smoke",0),("fire",0),("spark",1),("water",1),("sand",2),("wood",3),("rock",3)]
 
 def get_mat(name):
     if name == "air":
         return 0
     for k,v in enumerate(mat_list):
         if v[0] == name:
-            return (k+1)*2
+            return (k+1)*2+1
 
 def get_type(mid):
     return mat_list[mid-1][1]
@@ -95,7 +94,8 @@ def tick():
             if material % 2 == 1 or material == 0:
                 continue
             mid = world[x,y]//2
-            mid = do_reaction(x,y,mid)
+            if do_reaction(x,y,mid):
+                continue
             func_map[get_type(mid)](x,y,mid*2)
 
 def tick_gas(x,y,mid):
@@ -169,18 +169,15 @@ def tick_rock(x,y,mid):
 
 func_map = [tick_gas, tick_liquid, tick_sand, tick_solid]
 
-reactions = [
-        ("fire","air",0.02),
-        ("fire","smoke",0.1),
-        ("fire","spark",0.02),
-        ("fire+wood","spark+fire",0.95),
-        ("spark+wood","fire+fire",0.8),
-        ("spark","fire",0.3),
-        ("smoke","air",0.02),
-        ("fire+smoke","smoke+smoke",0.4),
-        ("fire+sand","fire+glass",0.05),
-        ("fire+air","air+fire",0.4),
-]
+reactions = {
+        "fire+air":("smoke+air",0.15),
+        "fire+wood":("spark+fire",0.95),
+        "spark+wood":("fire+fire",0.8),
+        "spark+air":("smoke+fire",0.3),
+        "smoke+smoke":("air+smoke",0.02),
+        "smoke+air":("air+air",0.05),
+        "fire+smoke":("smoke+smoke",0.4),
+}
 
 def do_reaction(x,y,mid):
     nx = x + random.choice([-1,0,1])
@@ -190,28 +187,17 @@ def do_reaction(x,y,mid):
             new = get_reaction(get_name(world[x,y]//2),get_name(world[nx,ny]//2))
             world[x,y] = get_mat(new[0][0])
             world[nx,ny] = get_mat(new[0][1])
-            return world[x,y]//2
-    return mid
+            return new[1]
+    return False
 
 def get_reaction(a,b):
-    for reaction in reactions:
-        data = match_reaction(reaction,a,b)
-        if data[1]:
-            return data
-    return ((a,b),False)
-
-def match_reaction(reaction,a,b):
-    parts = reaction[0].split("+")
-    parts_other = reaction[1].split("+")
-    if len(parts) == 1:
-        if a == parts[0]:
-            if random.random() < reaction[2]:
-                return ((parts_other[0],b),True)
-    else:
-        if a == parts[0] and b == parts[1]:
-            if random.random() < reaction[2]:
-                return ((parts_other[0],parts_other[1]),True)
-    return ((a,b),False)
+    try:
+        if random.random() < reactions[a+"+"+b][1]:
+            return (reactions[a+"+"+b][0].split("+"),True)
+        else:
+            return ([a,b],False)
+    except:
+        return ([a,b],False)
 
 def clean():
     global world
@@ -231,7 +217,7 @@ def world_init():
                 ty = get_mat("sand")
             elif y * 0.1 < random.random():
                 ty = get_mat("water")
-            elif random.random() < y * 0.05:
+            elif random.random() < 0.1:
                 ty = get_mat("wood")
             world[x,y] = ty
 
