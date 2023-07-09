@@ -14,6 +14,7 @@ world = np.zeros(size,dtype="uint8")
 # spark
 # water
 # sand
+# glass
 # wood
 # rock
 # ===== Render ======
