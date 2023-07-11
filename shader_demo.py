@@ -73,7 +73,7 @@ with open("compute.hlsl") as f:
 compute = compushady.Compute(shader_compute, cbv=[config_fast], srv=[
                              density_buf, types_buf], uav=[world_buf])
 
-with open("compute.hlsl") as f:
+with open("render.hlsl") as f:
     shader_render = hlsl.compile(
         f
         .read()
@@ -108,14 +108,14 @@ while not glfw.window_should_close(window):
     glfw.poll_events()
 
     # update "push constants" or whatever compushady calls them
-    config.upload(struct.pack('f', abs(math.sin(multiplier))))
-    config.copy_to(config_fast)
+    # config.upload(struct.pack('f', abs(math.sin(multiplier))))
+    # config.copy_to(config_fast)
     render.dispatch(target.width // 8, target.height // 8, 1)
 
     swapchain.present(target)
     if start is None:
         start = time.time()
-    multiplier += 0.02
+    # multiplier += 0.02
     count += 1
 print(count/(time.time()-start))
 
