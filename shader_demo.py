@@ -2,18 +2,24 @@ import glfw
 import compushady
 from compushady import HEAP_UPLOAD, Buffer, Swapchain, Texture2D
 from compushady.formats import B8G8R8A8_UNORM
+from compushady.shaders import hlsl
 import platform
 import random
+import struct
+import math
 import time
 
-print(dir(glfw))
-print(glfw.__file__)
 glfw.init()
 # we do not want implicit OpenGL!
 glfw.window_hint(glfw.CLIENT_API, glfw.NO_API)
 
 target = Texture2D(1920//5, 1080//5, B8G8R8A8_UNORM)
-random_buffer = Buffer(target.size, HEAP_UPLOAD)
+config = compushady.Buffer(16, compushady.HEAP_UPLOAD) # use 16 to make d3d11 happy...
+config_fast = compushady.Buffer(config.size)
+
+with open("compute.hlsl") as f:
+    shader = hlsl.compile(f.read())
+compute = compushady.Compute(shader, cbv=[config_fast], uav=[target])
 
 window = glfw.create_window(
     target.width, target.height, 'Random', None, None)
@@ -31,14 +37,20 @@ else:
         window)), compushady.formats.B8G8R8A8_UNORM, 2)
 
 count = 0
-start = 2**50
+start = None
+multiplier = 0
 while not glfw.window_should_close(window):
     glfw.poll_events()
-    random_buffer.upload(bytes([random.randint(0, 255), random.randint(
-        0, 255), random.randint(0, 255), 255]) * (target.size // 4))
-    random_buffer.copy_to(target)
+
+    # update "push constants" or whatever compushady calls them
+    config.upload(struct.pack('f', abs(math.sin(multiplier))))
+    config.copy_to(config_fast)
+    compute.dispatch(target.width // 8, target.height // 8, 1)
+
     swapchain.present(target)
-    start = min(time.time(), start)
+    if start is None:
+        start = time.time()
+    multiplier += 0.02
     count += 1
 print(count/(time.time()-start))
 
