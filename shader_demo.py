@@ -28,8 +28,8 @@ config_fast = compushady.Buffer(config.size)
 # 4 is solid
 
 mats = [
-    (0.0, [100, 100, 150, 255], 0, "air"),
-    (1.0, [200, 200, 30, 255], 1, "sand"),
+    (0.0, [0.5, 0.5, 0.6, 1.0], 0, "air"),
+    (1.0, [0.7, 0.7, 0.1, 1.0], 1, "sand"),
 ]
 WIDTH = 65
 HEIGHT = 65
@@ -51,7 +51,7 @@ staging_buffer_types = Buffer(types_buf.size, HEAP_UPLOAD)
 
 staging_buffer_density.upload(np.array(density, dtype=np.float32))
 staging_buffer_density.copy_to(density_buf)
-staging_buffer_colour.upload(np.array(colour, dtype=np.uint32))
+staging_buffer_colour.upload(np.array(colour, dtype=np.float32))
 staging_buffer_colour.copy_to(colour_buf)
 staging_buffer_types.upload(np.array(types, dtype=np.uint32))
 staging_buffer_types.copy_to(types_buf)
