@@ -1,7 +1,7 @@
 import glfw
 import compushady
 from compushady import HEAP_UPLOAD, Buffer, Swapchain, Texture2D
-from compushady.formats import R8G8B8A8_UINT, R8_UINT, R32_FLOAT, B8G8R8A8_UNORM, R32_UINT
+from compushady.formats import R32G32B32A32_FLOAT, R8_UINT, R32_FLOAT, B8G8R8A8_UNORM, R32_UINT
 from compushady.shaders import hlsl
 import platform
 import random
@@ -31,8 +31,8 @@ mats = [
     (0.0, [0.5, 0.5, 0.6, 1.0], 0, "air"),
     (1.0, [0.7, 0.7, 0.1, 1.0], 1, "sand"),
 ]
-WIDTH = 65
-HEIGHT = 65
+WIDTH = 1
+HEIGHT = 1
 NUM_MATS = len(mats)
 
 # least dry code of all time - like 20 lines of garbage
@@ -41,26 +41,33 @@ density = [mat[0] for mat in mats]
 colour = [mat[1] for mat in mats]
 types = [mat[2] for mat in mats]
 
-density_buf = compushady.Texture1D(NUM_MATS * 8, R32_FLOAT)
-colour_buf = compushady.Texture1D(NUM_MATS * 8, R8G8B8A8_UINT)
-types_buf = compushady.Texture1D(NUM_MATS * 8, R8_UINT)
-
+density_buf = compushady.Texture1D(NUM_MATS, R32_FLOAT)
+colour_buf = compushady.Texture1D(NUM_MATS*4, R32G32B32A32_FLOAT)
+types_buf = compushady.Texture1D(NUM_MATS, R8_UINT)
+print(density_buf.size)
+print(colour_buf.size)
 staging_buffer_density = Buffer(density_buf.size, HEAP_UPLOAD)
 staging_buffer_colour = Buffer(colour_buf.size, HEAP_UPLOAD)
 staging_buffer_types = Buffer(types_buf.size, HEAP_UPLOAD)
 
-staging_buffer_density.upload(np.array(density, dtype=np.float32))
-staging_buffer_density.copy_to(density_buf)
-staging_buffer_colour.upload(np.array(colour, dtype=np.float32))
-staging_buffer_colour.copy_to(colour_buf)
-staging_buffer_types.upload(np.array(types, dtype=np.uint32))
-staging_buffer_types.copy_to(types_buf)
-
 world = [[random.choice([0, 1]) for y in range(HEIGHT)] for x in range(WIDTH)]
-world_buf = compushady.Texture2D(WIDTH, HEIGHT, R32_UINT)
-staging_buffer_world = Buffer(world_buf.size, HEAP_UPLOAD)
-staging_buffer_world.upload(np.array(world, dtype=np.uint32))
-staging_buffer_world.copy_to(world_buf)
+world_buf = compushady.Texture2D(WIDTH, HEIGHT, R8_UINT)
+
+def copy_bufs():
+    staging_buffer_density.upload(np.array(density, dtype=np.float32))
+    staging_buffer_density.copy_to(density_buf)
+    d = np.array(colour, dtype=np.float32)
+    print(d)
+    staging_buffer_colour.upload(d)
+    staging_buffer_colour.copy_to(colour_buf)
+    staging_buffer_types.upload(np.array(types, dtype=np.uint32))
+    staging_buffer_types.copy_to(types_buf)
+
+    staging_buffer_world = Buffer(world_buf.size, HEAP_UPLOAD)
+    staging_buffer_world.upload(np.array(world, dtype=np.uint8))
+    staging_buffer_world.copy_to(world_buf)
+
+copy_bufs()
 
 with open("compute.hlsl") as f:
     shader_compute = hlsl.compile(
@@ -82,7 +89,7 @@ with open("render.hlsl") as f:
         .replace("$NUM_MATS", str(NUM_MATS))
     )
 # , srv=[world_buf, colour_buf]
-render = compushady.Compute(shader_render, uav=[target])
+render = compushady.Compute(shader_render, srv=[world_buf,colour_buf], uav=[target])
 
 window = glfw.create_window(
     target.width, target.height, 'Random', None, None)
