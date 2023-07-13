@@ -1,7 +1,7 @@
 import glfw
 import compushady
 from compushady import HEAP_UPLOAD, Buffer, Swapchain, Texture2D
-from compushady.formats import R32G32B32A32_FLOAT, R8_UINT, R32_FLOAT, B8G8R8A8_UNORM, R32_UINT
+from compushady.formats import R32G32B32A32_FLOAT, R8_UINT, R32_FLOAT, B8G8R8A8_UNORM, R32_UINT, R8G8B8A8_UNORM
 from compushady.shaders import hlsl
 import platform
 import random
@@ -28,8 +28,8 @@ config_fast = compushady.Buffer(config.size)
 # 4 is solid
 
 mats = [
-    (0.0, [0.5, 0.5, 0.6, 1.0], 0, "air"),
-    (1.0, [0.7, 0.7, 0.1, 1.0], 1, "sand"),
+    (0.0, [100, 100, 150, 255], 0, "air"),
+    (1.0, [200, 200, 30, 255], 1, "sand"),
 ]
 WIDTH = 1
 HEIGHT = 1
@@ -42,10 +42,11 @@ colour = [mat[1] for mat in mats]
 types = [mat[2] for mat in mats]
 
 density_buf = compushady.Texture1D(NUM_MATS, R32_FLOAT)
-colour_buf = compushady.Texture1D(NUM_MATS*4, R32G32B32A32_FLOAT)
+colour_buf = compushady.Texture1D(NUM_MATS, R8G8B8A8_UNORM)
 types_buf = compushady.Texture1D(NUM_MATS, R8_UINT)
 print(density_buf.size)
 print(colour_buf.size)
+print(types_buf.size)
 staging_buffer_density = Buffer(density_buf.size, HEAP_UPLOAD)
 staging_buffer_colour = Buffer(colour_buf.size, HEAP_UPLOAD)
 staging_buffer_types = Buffer(types_buf.size, HEAP_UPLOAD)
@@ -56,7 +57,7 @@ world_buf = compushady.Texture2D(WIDTH, HEIGHT, R8_UINT)
 def copy_bufs():
     staging_buffer_density.upload(np.array(density, dtype=np.float32))
     staging_buffer_density.copy_to(density_buf)
-    d = np.array(colour, dtype=np.float32)
+    d = np.array(colour, dtype=np.uint8)
     print(d)
     staging_buffer_colour.upload(d)
     staging_buffer_colour.copy_to(colour_buf)
