@@ -12,15 +12,14 @@ void main(int3 global_pos : SV_DispatchThreadID)
     // scaled_pos.y = min(scaled_pos.y,20);
     // uint world_val = world[scaled_pos]; // errors if pos too big
     // world.GetDimensions(width,height);
-    if (world[int2(0,0)] == 0)
-    {
-        target[pos] += colours[0];
-    }
-    target[pos] += colours[0];
     //float4 col = colours[world_val];
     //target[pos] = col;
     // if (scaled_pos.x < 100)
     // {
     target[pos] = colours[world[pos]];
+    if (world[pos] == 0)
+        {
+            target[pos] = float4(1,1,1,1);
+        }
     // }
 }

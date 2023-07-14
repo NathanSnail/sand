@@ -1,6 +1,6 @@
 cbuffer Config : register(b0)
 {
-    uint offset;
+    int2 offset;
 };
 
 /*
@@ -32,14 +32,47 @@ Texture1D<uint> type : register(t1); // r
 [numthreads(8,8,1)]
 void main(int3 global_pos : SV_DispatchThreadID)
 {
-    int2 pos = global_pos.xy;
+    int2 pos = global_pos.xy * 3 + offset;
+    // if 2 sand pixels are 1 space apart they made randomly fall into the same spot for *2 causing matter deletion
     if (density[0] < 1)
     {
         world[int2(0,0)] = 0;
     }
-    if (type[0] < 1)
+    if (type[2] == 0)
     {
-        world[int2(0,0)] = 0;
+        world[pos] = 0;
     }
-    world[pos] = 1 - world[pos];
+    world[pos] = 1;
+    if (type[2] == 1010876609)
+    {
+        // world[pos] = 0;
+    }
+    return;
+    uint c_type = type[world[pos]];
+    // if (c_type > 5)
+    //     {
+    //         world[pos] = 0;
+    //     }
+    world[pos] = type[2000];
+    switch (c_type)
+    {
+        case 0: // air
+            return;
+        case 1:
+            return; // TODO: gas 
+        case 2: // sand
+            world[pos] = 0;
+            if (pos.y + 1 >= 1/*$HEIGHT*/)
+            { // bottom of world
+                return;
+            }
+            uint swap = world[int2(pos.x,pos.y+1)];
+            if (density[type[swap]] < density[c_type])
+            { // fall
+                world[int2(pos.x,pos.y+1)] = world[pos];
+                world[pos] = swap;
+            }
+            return;
+
+    }
 }
