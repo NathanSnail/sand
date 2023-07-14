@@ -26,8 +26,8 @@ world:
 
 // 8 material types in a 65x65
 RWTexture2D<uint> world : register(u0); // rw
-Texture1D<float> density : register(t0); // r
-Texture1D<uint> type : register(t1); // r
+Texture1D<float> density : register(t1); // r
+Texture1D<uint> type : register(t0); // r
 
 [numthreads(8,8,1)]
 void main(int3 global_pos : SV_DispatchThreadID)
@@ -38,14 +38,15 @@ void main(int3 global_pos : SV_DispatchThreadID)
     {
         world[int2(0,0)] = 0;
     }
-    if (type[2] == 0)
-    {
-        world[pos] = 0;
-    }
-    world[pos] = 1;
+    // world[pos] = 1;
     if (type[2] == 1010876609)
     {
         // world[pos] = 0;
+    }
+    world[pos] = (world[pos] + 1) % 3;
+    if (type[3] < 2)
+    {
+        world[pos] = 0;
     }
     return;
     uint c_type = type[world[pos]];

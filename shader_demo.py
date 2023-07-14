@@ -32,8 +32,8 @@ mats = [
     (1.0, [0, 255, 0, 255], 2, "sand"),
     (0.5, [0, 0, 255, 255], 3, "water"),
 ]
-WIDTH = 1920//500
-HEIGHT = 1080//500
+WIDTH = 1920//50
+HEIGHT = 1080//50
 NUM_MATS = len(mats)
 
 # least dry code of all time - like 20 lines of garbage
@@ -44,7 +44,7 @@ types = [mat[2] for mat in mats]
 
 density_buf = compushady.Texture1D(NUM_MATS, R32_FLOAT)
 colour_buf = compushady.Texture1D(NUM_MATS, R8G8B8A8_UNORM)
-types_buf = compushady.Texture1D(NUM_MATS, R32_UINT)
+types_buf = compushady.Texture1D(NUM_MATS, R8_UINT)
 print(density_buf.size)
 print(colour_buf.size)
 print(types_buf.size)
@@ -53,7 +53,7 @@ staging_buffer_colour = Buffer(colour_buf.size, HEAP_UPLOAD)
 staging_buffer_types = Buffer(types_buf.size, HEAP_UPLOAD)
 
 world = [[random.choice([0, 1, 2]) for y in range(HEIGHT)] for x in range(WIDTH)]
-world_buf = compushady.Texture2D(WIDTH, HEIGHT, R8_UINT)
+world_buf = compushady.Texture2D(WIDTH, HEIGHT, R32_UINT)
 
 
 def copy_bufs():
@@ -62,11 +62,11 @@ def copy_bufs():
     staging_buffer_colour.upload(np.array(colour, dtype=np.uint8))
     staging_buffer_colour.copy_to(colour_buf)
     print(types)
-    staging_buffer_types.upload(np.array(types, dtype=np.uint32))
+    staging_buffer_types.upload(np.array(types, dtype=np.uint8))
     staging_buffer_types.copy_to(types_buf)
 
     staging_buffer_world = Buffer(world_buf.size, HEAP_UPLOAD)
-    staging_buffer_world.upload(np.array(world, dtype=np.uint8))
+    staging_buffer_world.upload(np.array(world, dtype=np.uint32))
     staging_buffer_world.copy_to(world_buf)
 
     buffer = Buffer(types_buf.size, HEAP_READBACK)
@@ -74,11 +74,11 @@ def copy_bufs():
     read = buffer.readback()
     stringy = read.hex()
     print(stringy)
-    buffer = Buffer(world_buf.size, HEAP_READBACK)
-    world_buf.copy_to(buffer)
-    read = buffer.readback()
-    stringy = read.hex()
-    print(stringy)
+    # buffer = Buffer(world_buf.size, HEAP_READBACK)
+    # world_buf.copy_to(buffer)
+    # read = buffer.readback()
+    # stringy = read.hex()
+    # print(stringy)
 
 
 copy_bufs()
@@ -92,7 +92,7 @@ with open("compute.hlsl") as f:
         .replace("1/*$NUM_MATS*/", str(NUM_MATS))
     )
 compute = compushady.Compute(shader_compute, cbv=[config_fast], srv=[
-                             density_buf, types_buf], uav=[world_buf])
+                             types_buf,density_buf], uav=[world_buf])
 
 with open("render.hlsl") as f:
     shader_render = hlsl.compile(
