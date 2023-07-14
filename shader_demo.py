@@ -1,6 +1,6 @@
 import glfw
 import compushady
-from compushady import HEAP_UPLOAD, Buffer, Swapchain, Texture2D
+from compushady import HEAP_UPLOAD, Buffer, Swapchain, Texture2D, HEAP_READBACK
 from compushady.formats import R32G32B32A32_FLOAT, R8_UINT, R32_FLOAT, B8G8R8A8_UNORM, R32_UINT, R8G8B8A8_UNORM
 from compushady.shaders import hlsl
 import platform
@@ -29,7 +29,7 @@ config_fast = compushady.Buffer(config.size)
 
 mats = [
     (0.0, [100, 100, 150, 255], 0, "air"),
-    (1.0, [200, 200, 30, 255], 1, "sand"),
+    # (1.0, [200, 200, 30, 255], 1, "sand"),
 ]
 WIDTH = 1
 HEIGHT = 1
@@ -63,6 +63,11 @@ def copy_bufs():
     staging_buffer_colour.copy_to(colour_buf)
     staging_buffer_types.upload(np.array(types, dtype=np.uint32))
     staging_buffer_types.copy_to(types_buf)
+    buffer = Buffer(colour_buf.size, HEAP_READBACK)
+    colour_buf.copy_to(buffer)
+    read = buffer.readback()
+    stringy = read.hex()
+    print(stringy)
 
     staging_buffer_world = Buffer(world_buf.size, HEAP_UPLOAD)
     staging_buffer_world.upload(np.array(world, dtype=np.uint8))

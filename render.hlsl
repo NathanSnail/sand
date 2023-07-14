@@ -1,6 +1,6 @@
 Texture2D<uint> world : register(t0);
 Texture1D<float4> colours : register(t1);
-RWTexture2D<float4> target : register(u1);
+RWTexture2D<float4> target : register(u0);
 
 [numthreads(8,8,1)]
 void main(int3 global_pos : SV_DispatchThreadID)
@@ -11,9 +11,11 @@ void main(int3 global_pos : SV_DispatchThreadID)
     // scaled_pos.x = min(scaled_pos.x,20);
     // scaled_pos.y = min(scaled_pos.y,20);
     // uint world_val = world[scaled_pos]; // errors if pos too big
-    uint width;
-    uint height;
     // world.GetDimensions(width,height);
+    if (world[int2(0,0)] == 0)
+    {
+        target[pos] += colours[0];
+    }
     target[pos] += colours[0];
     //float4 col = colours[world_val];
     //target[pos] = col;
