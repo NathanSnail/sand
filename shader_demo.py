@@ -29,10 +29,10 @@ config_fast = compushady.Buffer(config.size)
 
 mats = [
     (0.0, [100, 100, 150, 255], 0, "air"),
-    # (1.0, [200, 200, 30, 255], 1, "sand"),
+    (1.0, [200, 200, 30, 255], 1, "sand"),
 ]
-WIDTH = 1
-HEIGHT = 1
+WIDTH = 1920//5
+HEIGHT = 1080//5
 NUM_MATS = len(mats)
 
 # least dry code of all time - like 20 lines of garbage
@@ -54,24 +54,25 @@ staging_buffer_types = Buffer(types_buf.size, HEAP_UPLOAD)
 world = [[random.choice([0, 1]) for y in range(HEIGHT)] for x in range(WIDTH)]
 world_buf = compushady.Texture2D(WIDTH, HEIGHT, R8_UINT)
 
+
 def copy_bufs():
     staging_buffer_density.upload(np.array(density, dtype=np.float32))
     staging_buffer_density.copy_to(density_buf)
-    d = np.array(colour, dtype=np.uint8)
-    print(d)
-    staging_buffer_colour.upload(d)
+    staging_buffer_colour.upload(np.array(colour, dtype=np.uint8))
     staging_buffer_colour.copy_to(colour_buf)
     staging_buffer_types.upload(np.array(types, dtype=np.uint32))
     staging_buffer_types.copy_to(types_buf)
-    buffer = Buffer(colour_buf.size, HEAP_READBACK)
-    colour_buf.copy_to(buffer)
-    read = buffer.readback()
-    stringy = read.hex()
-    print(stringy)
 
     staging_buffer_world = Buffer(world_buf.size, HEAP_UPLOAD)
     staging_buffer_world.upload(np.array(world, dtype=np.uint8))
     staging_buffer_world.copy_to(world_buf)
+
+    buffer = Buffer(world_buf.size, HEAP_READBACK)
+    world_buf.copy_to(buffer)
+    read = buffer.readback()
+    stringy = read.hex()
+    print(stringy)
+
 
 copy_bufs()
 
@@ -95,7 +96,8 @@ with open("render.hlsl") as f:
         .replace("$NUM_MATS", str(NUM_MATS))
     )
 # , srv=[world_buf, colour_buf]
-render = compushady.Compute(shader_render, srv=[world_buf,colour_buf], uav=[target])
+render = compushady.Compute(
+    shader_render, srv=[world_buf, colour_buf], uav=[target])
 
 window = glfw.create_window(
     target.width, target.height, 'Random', None, None)
@@ -124,8 +126,9 @@ while not glfw.window_should_close(window):
     # config.upload(struct.pack('f', abs(math.sin(multiplier))))
     # config.copy_to(config_fast)
     render.dispatch(target.width // 8, target.height // 8, 1)
-
+    compute.dispatch(target.width // 8, target.height // 8, 1)
     swapchain.present(target)
+    time.sleep(0.5)
     if start is None:
         start = time.time()
     # multiplier += 0.02

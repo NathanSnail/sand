@@ -21,6 +21,6 @@ void main(int3 global_pos : SV_DispatchThreadID)
     //target[pos] = col;
     // if (scaled_pos.x < 100)
     // {
-    target[pos] = float4(1,1,0,1);
+    target[pos] = colours[world[pos]];
     // }
 }

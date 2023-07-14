@@ -25,12 +25,21 @@ world:
 */
 
 // 8 material types in a 65x65
-Texture2DArray<uint> world[$WIDTH][$HEIGHT] : register(s0);
-Texture1DArray<float> density[$NUM_MATS] : register(t0);
-Texture1DArray<uint> type[$NUM_MATS] : register(t1);
+RWTexture2D<uint> world : register(u0); // rw
+Texture1D<float> density : register(t0); // r
+Texture1D<uint> type : register(t1); // r
 
 [numthreads(8,8,1)]
 void main(int3 global_pos : SV_DispatchThreadID)
 {
-    uint2 pos = global_pos.xy * 2 + offset;
+    int2 pos = global_pos.xy;
+    if (density[0] < 1)
+    {
+        world[int2(0,0)] = 0;
+    }
+    if (type[0] < 1)
+    {
+        world[int2(0,0)] = 0;
+    }
+    world[pos] = 1 - world[pos];
 }
