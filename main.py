@@ -26,9 +26,10 @@ config_fast = compushady.Buffer(config.size)
 # 4 is solid
 
 mats = [
-    (0.0, [255, 0, 0, 255], 0, "air"),
-    (1.0, [0, 255, 0, 255], 2, "sand"),
+    (0.0, [200, 200, 255, 255], 0, "air"),
+    (1.0, [255, 255, 0, 255], 2, "sand"),
     (0.5, [0, 0, 255, 255], 3, "water"),
+	(-0.2, [255, 150, 0, 255], 1, "fire"),
 ]
 WIDTH = 1920
 HEIGHT = 1080
@@ -52,7 +53,8 @@ staging_buffer_density = Buffer(density_buf.size, HEAP_UPLOAD)
 staging_buffer_colour = Buffer(colour_buf.size, HEAP_UPLOAD)
 staging_buffer_types = Buffer(types_buf.size, HEAP_UPLOAD)
 
-world = [[random.choice([0, 1, 2]) for y in range(HEIGHT)] for x in range(WIDTH)]
+world = [[random.choice([0, 1, 2, 3]) for y in range(HEIGHT)]
+         for x in range(WIDTH)]
 world_buf = compushady.Texture2D(WIDTH, HEIGHT, R32_UINT)
 
 
@@ -92,7 +94,7 @@ with open("compute.hlsl") as f:
         .replace("1/*$NUM_MATS*/", str(NUM_MATS))
     )
 compute = compushady.Compute(shader_compute, cbv=[config_fast], srv=[
-                             types_buf,density_buf], uav=[world_buf])
+                             types_buf, density_buf], uav=[world_buf])
 
 with open("render.hlsl") as f:
     shader_render = hlsl.compile(
@@ -107,12 +109,12 @@ render = compushady.Compute(
     shader_render, srv=[world_buf, colour_buf], uav=[target])
 
 window = glfw.create_window(
-    target.width, target.height, 'Random', None, None)
+    target.width, target.height, "Sand Sim", None, None)
 
-if platform.system() == 'Windows':
+if platform.system() == "Windows":
     swapchain = compushady.Swapchain(glfw.get_win32_window(
         window), compushady.formats.B8G8R8A8_UNORM, 2)
-elif platform.system() == 'Darwin':
+elif platform.system() == "Darwin":
     # macos
     from compushady.backends.metal import create_metal_layer
     ca_metal_layer = create_metal_layer(glfw.get_cocoa_window(
@@ -126,6 +128,16 @@ else:
 count = 0
 start = None
 multiplier = 0
+
+
+def do_offset(x, y):
+    config.upload(np.array([x, y, random.random()*16], dtype=np.uint32))
+    config.copy_to(config_fast)
+    # print(compute)
+    # print(shader_compute)
+    compute.dispatch(target.width // 8, target.height // 8, 1)
+
+
 while not glfw.window_should_close(window):
     glfw.poll_events()
 
@@ -133,13 +145,14 @@ while not glfw.window_should_close(window):
     # config.upload(struct.pack('f', abs(math.sin(multiplier))))
     # config.copy_to(config_fast)
     render.dispatch(target.width // 8, target.height // 8, 1)
-    for x in range(3):
-        for y in range(3): # prevent weird physics
-            config.upload(np.array([x,y,random.random()*16],dtype=np.uint32))
-            config.copy_to(config_fast)
-            # print(compute)
-            # print(shader_compute)
-            compute.dispatch(target.width // 8, target.height // 8, 1)
+    # prevents races
+    for y in range(2, -1, -1): # makes less holes
+        if count % 2:
+            for x in range(3): # favours 1 side
+                do_offset(x, y)
+        else:
+            for x in range(2, -1, -1): # favours other
+                do_offset(x, y)
     swapchain.present(target)
     # time.sleep(0.5)
     if start is None:

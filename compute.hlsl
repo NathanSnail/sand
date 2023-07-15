@@ -41,14 +41,75 @@ void main(int3 global_pos : SV_DispatchThreadID)
 	uint c_mat = world[pos];
 	bool dir;
 	uint swap;
+	float sampleL;
+	float sampleR;
+	bool freeR = pos.x + 1 < 1/*$WIDTH*/;
+	bool freeL = pos.x > 0;
+	bool freeU = pos.y > 0;
+	bool freeD = pos.y + 1 < 1/*$HEIGHT*/;
+
     switch (type[c_mat])
     {
         case 0: // air
             return;
-        case 1: // TODO: gas 
+        case 1: // gas
+			// U / D < > flip gas
+            if (!freeU)
+            { // top of world
+                return;
+            }
+            swap = world[int2(pos.x,pos.y-1)];
+            if (density[swap] > density[c_mat])
+            { // float
+                world[int2(pos.x,pos.y-1)] = world[pos];
+                world[pos] = swap;
+				return;
+            }
+			dir = rng(pos) > 0.5;
+			swap = world[int2(pos.x + int(dir) * 2 - 1,pos.y-1)];
+			if(density[swap] > density[c_mat])
+			{ // slide
+				if ((dir && !freeR) || (!dir && !freeL)) {return;}
+				world[int2(pos.x + int(dir) * 2 - 1,pos.y-1)] = world[pos];
+                world[pos] = swap;
+				return;
+			}
+			// flowing stuff
+			sampleL = density[world[int2(pos.x-1,pos.y)]]; // get LR
+			sampleR = density[world[int2(pos.x+1,pos.y)]];
+			if (abs(sampleL-sampleR) < 0.01) // same mat
+			{
+				if ((dir && !freeR) || (!dir && !freeL)) {return;}
+				swap = world[int2(pos.x + int(dir) * 2 - 1,pos.y)];
+				if(density[swap] > density[c_mat])
+				{
+					// flow
+					world[int2(pos.x + int(dir) * 2 - 1,pos.y)] = world[pos];
+					world[pos] = swap;
+				}
+				return;
+			}
+			if (sampleL < sampleR)
+			{
+				// right is easier
+				if (!freeR) {return;}
+				swap = world[int2(pos.x + 1,pos.y)];
+				world[int2(pos.x + 1,pos.y)] = world[pos];
+				world[pos] = swap;
+				return;
+			}
+			if (sampleR < sampleL)
+			{
+				// left is easier
+				if (!freeL) {return;}
+				swap = world[int2(pos.x - 1,pos.y)];
+				world[int2(pos.x - 1,pos.y)] = world[pos];
+				world[pos] = swap;
+				return;
+			}
             return;
         case 2: // sand
-            if (pos.y + 1 >= 1/*$HEIGHT*/)
+            if (!freeD)
             { // bottom of world
                 return;
             }
@@ -63,13 +124,14 @@ void main(int3 global_pos : SV_DispatchThreadID)
 			swap = world[int2(pos.x + int(dir) * 2 - 1,pos.y+1)];
 			if(density[swap] < density[c_mat])
 			{ // slide
+				if ((dir && !freeR) || (!dir && !freeL)) {return;}
 				world[int2(pos.x + int(dir) * 2 - 1,pos.y+1)] = world[pos];
                 world[pos] = swap;
 				return;
 			}
             return;
 		case 3: // liquid
-			if (pos.y + 1 >= 1/*$HEIGHT*/)
+			if (!freeD)
             { // bottom of world
                 return;
             }
@@ -84,21 +146,22 @@ void main(int3 global_pos : SV_DispatchThreadID)
 			swap = world[int2(pos.x + int(dir) * 2 - 1,pos.y+1)];
 			if(density[swap] < density[c_mat])
 			{ // slide
+				if ((dir && !freeR) || (!dir && !freeL)) {return;}
 				world[int2(pos.x + int(dir) * 2 - 1,pos.y+1)] = world[pos];
                 world[pos] = swap;
 				return;
 			}
-            return;
 			// flowing stuff
-			float sampleL = density[world[int2(pos.x-1,pos.y)]]; // get LR
-			float sampleR = density[world[int2(pos.x+1,pos.y)]];
+			sampleL = density[world[int2(pos.x-1,pos.y)]]; // get LR
+			sampleR = density[world[int2(pos.x+1,pos.y)]];
 			if (abs(sampleL-sampleR) < 0.01) // same mat
 			{
+				if ((dir && !freeR) || (!dir && !freeL)) {return;}
 				swap = world[int2(pos.x + int(dir) * 2 - 1,pos.y)];
 				if(density[swap] < density[c_mat])
 				{
 					// flow
-					world[int2(pos.x + int(dir) * 2 - 1,pos.y+1)] = world[pos];
+					world[int2(pos.x + int(dir) * 2 - 1,pos.y)] = world[pos];
 					world[pos] = swap;
 				}
 				return;
@@ -106,7 +169,20 @@ void main(int3 global_pos : SV_DispatchThreadID)
 			if (sampleL > sampleR)
 			{
 				// right is easier
-				
+				if (!freeR) {return;}
+				swap = world[int2(pos.x + 1,pos.y)];
+				world[int2(pos.x + 1,pos.y)] = world[pos];
+				world[pos] = swap;
+				return;
+			}
+			if (sampleR > sampleL)
+			{
+				// left is easier
+				if (!freeL) {return;}
+				swap = world[int2(pos.x - 1,pos.y)];
+				world[int2(pos.x - 1,pos.y)] = world[pos];
+				world[pos] = swap;
+				return;
 			}
             return;
     }
