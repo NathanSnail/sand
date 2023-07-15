@@ -8,8 +8,4 @@ void main(int3 global_pos : SV_DispatchThreadID)
     int2 pos = global_pos.xy;
     // int2 scaled_pos = pos / 10;
     target[pos] = colours[world[pos]];
-    // if (world[pos] == 0)
-    // {
-    //     target[pos] = float4(1,1,1,1);
-    // }
 }
