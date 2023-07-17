@@ -38,8 +38,9 @@ colour = [mat[1] for mat in mats]
 types = [mat[2] for mat in mats]
 names = [mat[3] for mat in mats]
 
-WIDTH = 1920
-HEIGHT = 1080
+WIDTH = 1920//40
+HEIGHT = 1080//40
+SCALE = 10
 NUM_MATS = len(mats)
 
 
@@ -64,7 +65,7 @@ for reaction in reactions:
     reaction_array_catalyst[reactants[0], reactants[1]] = products[1]
     reaction_array_probability[reactants[0], reactants[1]] = probability
 
-target = Texture2D(WIDTH, HEIGHT, B8G8R8A8_UNORM)
+target = Texture2D(WIDTH*SCALE, HEIGHT*SCALE, B8G8R8A8_UNORM)
 
 # least dry code of all time - like 20 lines of garbage
 
@@ -91,8 +92,14 @@ staging_buffer_react_catalyst = Buffer(react_catalyst_buf.size, HEAP_UPLOAD)
 staging_buffer_react_probability = Buffer(
     react_probability_buf.size, HEAP_UPLOAD)
 
-world = [[random.choice([0, 1, 2, 3]) for y in range(HEIGHT)]
+world = [[random.choice([0, 1]) for y in range(HEIGHT)]
          for x in range(WIDTH)]
+world = np.array(world)
+world[:,:] = 0
+world[:,1:4] = 1
+world[5:20,7:9] = 1
+world[1:3,:] = 2
+world = world.tolist()
 world_buf = compushady.Texture2D(WIDTH, HEIGHT, R32_UINT)
 
 print(world_buf.size)
