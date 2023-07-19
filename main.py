@@ -76,9 +76,9 @@ react_reactant_buf = compushady.Texture2D(NUM_MATS, NUM_MATS, R32_UINT)
 react_catalyst_buf = compushady.Texture2D(NUM_MATS, NUM_MATS, R32_UINT)
 react_probability_buf = compushady.Texture2D(NUM_MATS, NUM_MATS, R32_FLOAT)
 
-silly_buf = compushady.Texture2D(2,2,R32_UINT)
-print(silly_buf.size) 
-silly_buf = compushady.Texture2D(1000,4,R32_UINT)
+silly_buf = compushady.Texture2D(2, 2, R32_UINT)
+print(silly_buf.size)
+silly_buf = compushady.Texture2D(1000, 4, R32_UINT)
 print(silly_buf.size)
 # silly_buf = compushady.Texture2D(1920,1080,R32_UINT)
 # print(silly_buf.size)
@@ -101,6 +101,7 @@ print(reaction_array_probability)
 print(reaction_array_probability.tobytes().hex())
 print(reaction_array_probability.dtype)
 
+
 def copy_bufs():
     staging_buffer_density.upload(np.array(density, dtype=np.float32))
     staging_buffer_density.copy_to(density_buf)
@@ -113,8 +114,8 @@ def copy_bufs():
     staging_buffer_react_reactant.upload(
         np.array(reaction_array_reactant, dtype=np.uint32))
     staging_buffer_react_reactant.copy_to(react_reactant_buf)
-    staging_buffer_react_catalyst.upload(
-        np.array(reaction_array_catalyst, dtype=np.uint32))
+    staging_buffer_react_catalyst.upload2d(
+        np.array(reaction_array_catalyst, dtype=np.uint32), pitch=react_catalyst_buf.row_pitch, width=react_catalyst_buf.width, height=react_catalyst_buf.height, bytes_per_pixel=R32_UINT)
     staging_buffer_react_catalyst.copy_to(react_catalyst_buf)
     staging_buffer_react_probability.upload(reaction_array_probability)
     staging_buffer_react_probability.copy_to(react_probability_buf)

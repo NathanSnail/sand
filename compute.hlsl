@@ -52,7 +52,8 @@ void main(int3 global_pos : SV_DispatchThreadID)
 	bool freeL = pos.x > 0;
 	bool freeU = pos.y > 0;
 	bool freeD = pos.y + 1 < 1/*$HEIGHT*/;
-	if (react_pair_prob[int2(3,1)] > 0.5) {world[pos] = 0;}
+    if (react_pair_prob[int2(3, 1)] > 0.5) { world[pos] = 0;}
+    if (react_pair_prob[int2(1, 3)] > 0.5) { world[pos] = 0;}
 	// react
 	int rand = int(rng(int2(pos.x+20,pos.y+7)) * 4.0); // 0..4 truncates to i(0..=3)
 	int2 second_pos = int2(pos.x+(rand%2)*2-1,pos.y+(rand/2)*2-1);
