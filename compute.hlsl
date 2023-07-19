@@ -5,8 +5,8 @@ cbuffer Config : register(b0)
 
 float rng(int2 pos)
 { // bad rng but idc
-	float combo = float(pos.x) * float(offset.z) + float(pos.y) * 127;
-	return abs(combo % 2 - 1);
+	float combo = float(pos.x+1) * float(offset.z) + float(pos.y) * 127;
+	return abs((517.31*combo) % 2 - 1);
 }
 
 /*

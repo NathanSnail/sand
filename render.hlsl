@@ -6,6 +6,6 @@ RWTexture2D<float4> target : register(u0);
 void main(int3 global_pos : SV_DispatchThreadID)
 {
     int2 pos = global_pos.xy;
-    // int2 scaled_pos = pos / 10;
-    target[pos] = colours[world[pos]];
+     int2 scaled_pos = pos / 10;
+    target[pos] = colours[world[scaled_pos]];
 }
